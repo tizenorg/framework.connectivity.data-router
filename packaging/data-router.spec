@@ -35,5 +35,6 @@ rm -rf %{buildroot}
 
 %files
 %manifest data-router.manifest
+/opt/etc/smack/accesses.d/data-router.rule
 %defattr(-, root, root)
 /usr/bin/data-router

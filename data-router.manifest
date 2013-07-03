@@ -1,5 +1,8 @@
 <manifest>
-	<request>
-		<domain name="_"/>
-	</request>
+        <define>
+                <domain name="data-router"/>
+        </define>
+        <request>
+                <domain name="data-router"/>
+        </request>
 </manifest>
