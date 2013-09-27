@@ -26,7 +26,8 @@ make %{?jobs:-j%jobs}
 %install
 rm -rf %{buildroot}
 %make_install
-
+mkdir -p %{buildroot}/usr/share/license
+cp LICENSE.APLv2.0 %{buildroot}/usr/share/license/%{name}
 
 %post
 /usr/bin/vconftool set -t int memory/data_router/osp_serial_open "0" -u 0 -i -f
@@ -38,3 +39,4 @@ rm -rf %{buildroot}
 /opt/etc/smack/accesses.d/data-router.rule
 %defattr(-, root, root)
 /usr/bin/data-router
+/usr/share/license/%{name}
