@@ -1,6 +1,9 @@
 <manifest>
         <define>
                 <domain name="data-router"/>
+		<request>
+			<smack request="telephony_framework::properties" type="rw"/>
+		</request>
         </define>
         <request>
                 <domain name="data-router"/>

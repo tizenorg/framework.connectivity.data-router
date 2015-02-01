@@ -229,7 +229,7 @@ static gboolean __g_io_accept_handler(GIOChannel *chan, GIOCondition cond, gpoin
 	DBG("Waiting for connection request\n");
 	serverfd = g_io_channel_unix_get_fd(chan);
 	clientfd = accept(serverfd, (struct sockaddr *)&client_addr, &addrlen);
-	if (clientfd > 0)	{
+	if (clientfd >= 0)	{
 		DBG("serverfd:%d clientfd:%d\n", serverfd, clientfd);
 
 		io = g_io_channel_unix_new(clientfd);

@@ -35,7 +35,7 @@ cp LICENSE %{buildroot}/usr/share/license/%{name}
 
 %files
 %manifest data-router.manifest
-/opt/etc/smack/accesses.d/data-router.rule
+/etc/smack/accesses.d/data-router.rule
 %defattr(-, root, root)
 /usr/bin/data-router
 /usr/share/license/%{name}
