@@ -33,12 +33,12 @@ enum {
 	SERIAL_OPENED,
 };
 
-						
 gboolean _init_dbus_signal(void);
 void _send_serial_status_signal(int event);
 
 void _init_serial_server(void);
 gboolean _deinit_serial_server(void);
 gboolean _is_exist_serial_session(void);
+gboolean _wait_serial_session(void);
 int _write_to_serial_client(char *buf, int buf_len);
 #endif

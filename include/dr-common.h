@@ -34,12 +34,10 @@
 #include <dlog.h>
 
 
-
-#define DR_MID "DR"
-#define DBG(fmt, args...) SLOG(LOG_DEBUG, DR_MID, "[%s()][Ln:%d] "fmt, \
-					__func__, __LINE__, ##args)
-#define ERR(fmt, args...) SLOG(LOG_ERROR, DR_MID, "[%s()][Ln:%d] "fmt, \
-						__func__, __LINE__, ##args)
+#undef LOG_TAG
+#define LOG_TAG "DATA_ROUTER"
+#define DBG(fmt, args...) SLOGD(fmt, ##args)
+#define ERR(fmt, args...) SLOGE(fmt, ##args)
 
 
 int _get_usb_state(int *usb_state);

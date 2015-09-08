@@ -2,7 +2,7 @@ Source: data-router
 Section: misc
 Priority: extra
 Maintainer: Hocheol Seo <hocheol.seo@samsung.com>, InJun Yang <injun.yang@samsung.com>, Seungyoun Ju <sy39.ju@samsung.com>
-Build-Depends: debhelper (>= 5), autotools-dev, libslp-setting-dev, dlog-dev, libslp-tapi-dev, libssl-dev
+Build-Depends: debhelper (>= 5), autotools-dev, libslp-setting-dev, dlog-dev, libssl-dev
 Standards-Version: 3.7.2
 
 Package: data-router-bin

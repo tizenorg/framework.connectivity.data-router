@@ -36,6 +36,7 @@ typedef struct {
 const dr_at_cmd_t dr_at_cmds[] = {
 	{"ATZ", ATZ_TOKEN},
 	{"AT+OSPSERIALOPEN", AT_OSP_TOKEN},
+	{"tizen.request='tizen.initialize'", AT_TIZEN_OSP_TOKEN},
 	{"", OTHER_TOKEN},
 };
 

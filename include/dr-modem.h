@@ -28,13 +28,4 @@
 #include "dr-main.h"
 
 
-/** 
-  *  @internal
-  *  This function is used to control modem interface
-  * 
-  *   @param       [in]   status              DTR status
-  *   @return       This function returns whether sending signal to modem via tapi to control modem interface is successful or not 
-  */
-int _send_dtr_ctrl_signal(int status);
-
 #endif				//_DR_DPRAM_H_

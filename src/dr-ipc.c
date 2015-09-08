@@ -39,7 +39,8 @@
 #include "dr-main.h"
 #include "dr-ipc.h"
 
-
+#define SOCK_WAIT_TIME 10000
+#define SOCK_WAIT_CNT 200
 #define COM_SOCKET_PATH					"/tmp/.dr_common_stream"
 #define BUF_SIZE		65536
 #define NETWORK_SERIAL_INTERFACE		"Capi.Network.Serial"
@@ -60,13 +61,12 @@ typedef struct {
 	unsigned char state;
 }dr_socket_info_t;
 
-dr_socket_info_t serial_session = {0, }; 
+dr_socket_info_t serial_session = {0, };
 
 
 static DBusHandlerResult __dbus_event_filter(DBusConnection *sys_conn,
 							DBusMessage *msg, void *data)
 {
-	char *member;
 	const char *path = dbus_message_get_path(msg);
 
 	if (dbus_message_get_type(msg) != DBUS_MESSAGE_TYPE_SIGNAL)
@@ -74,8 +74,6 @@ static DBusHandlerResult __dbus_event_filter(DBusConnection *sys_conn,
 
 	if (path == NULL || strcmp(path, "/") == 0)
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-
-	member = (char *)dbus_message_get_member(msg);
 
 	if (dbus_message_is_signal(msg, NETWORK_SERIAL_INTERFACE,
 						"ready_for_serial")) {
@@ -92,7 +90,7 @@ static DBusHandlerResult __dbus_event_filter(DBusConnection *sys_conn,
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
-						
+
 gboolean _init_dbus_signal(void)
 {
 	DBG("+\n");
@@ -231,7 +229,7 @@ static gboolean __g_io_accept_handler(GIOChannel *chan, GIOCondition cond, gpoin
 	DBG("Waiting for connection request\n");
 	serverfd = g_io_channel_unix_get_fd(chan);
 	clientfd = accept(serverfd, (struct sockaddr *)&client_addr, &addrlen);
-	if (clientfd > 0)	{
+	if (clientfd >= 0)	{
 		DBG("serverfd:%d clientfd:%d\n", serverfd, clientfd);
 
 		io = g_io_channel_unix_new(clientfd);
@@ -314,3 +312,14 @@ gboolean _is_exist_serial_session(void)
 	return (serial_session.state == SERIAL_SESSION_CONNECTED) ? TRUE: FALSE;
 }
 
+gboolean _wait_serial_session(void)
+{
+	int cnt = 0;
+	while (_is_exist_serial_session() == FALSE) {
+		usleep(SOCK_WAIT_TIME);
+		if (cnt++ > SOCK_WAIT_CNT)
+			return FALSE;
+	}
+
+	return TRUE;
+}

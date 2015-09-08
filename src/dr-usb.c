@@ -98,7 +98,7 @@ static int __open_usb_node(void)
 	poll_events[0].revents = 0;
 
 	poll_events[1].fd = ctl_fd;
-	poll_events[1].events = POLLIN;
+	poll_events[1].events = POLLIN | POLLERR | POLLHUP;
 	poll_events[1].revents = 0;
 
 	dr_info.line.output_line_state.state = 0;
@@ -111,10 +111,10 @@ static int __open_usb_node(void)
 	return 0;
 
 failed:
-	if(usb_fd > 0) {
+	if(usb_fd >= 0) {
 		close(usb_fd);
 	}
-	if(ctl_fd > 0) {
+	if(ctl_fd >= 0) {
 		close(ctl_fd);
 	}
 	return -1;
@@ -250,14 +250,25 @@ static void __process_at_cmd(char *buffer, int nread)
 		info = "\r\nOK\r\n";
 		_write_to_usb(info, strlen(info));
 		return;
-	} else if (type == AT_OSP_TOKEN) {
+	} else if (type == AT_OSP_TOKEN || type == AT_TIZEN_OSP_TOKEN) {
 		_init_serial_server();
 
 		if (vconf_set_int("memory/data_router/osp_serial_open", 1) != 0) {
 			ERR("vconf set failed\n");
 			return;
 		}
-		info = "\r\nOK\r\n";
+
+		if (_wait_serial_session()) {
+			if (type == AT_OSP_TOKEN)
+				info = "\r\nOK\r\n";
+			else
+				info = "\r\ntizen.response='tizen.success'\r\n";
+		} else {
+			if (type == AT_OSP_TOKEN)
+				info = "\r\nERROR\r\n";
+			else
+				info = "\r\ntizen.response='tizen.failure'\r\n";
+		}
 		_write_to_usb(info, strlen(info));
 		return;
 	}
@@ -343,9 +354,20 @@ static void *__usb_monitor_thread(void *arg)
 				} else if ((!(line_state & ACM_CTRL_DTR)) &&
 						(dr_info.line.input_line_state.bits.dtr == TRUE)) {
 					DBG("ACM_CTRL_DTR- received\n");
-					_send_serial_status_signal(SERIAL_CLOSED);
-					dr_info.line.input_line_state.bits.dtr = FALSE;
+					if (_deinit_serial_server() == TRUE) {
+						_send_serial_status_signal(SERIAL_CLOSED);
+						dr_info.line.input_line_state.bits.dtr = FALSE;
+					}
 				}
+			}
+
+			if (poll_events[1].revents & POLLHUP ||
+					poll_events[1].revents & POLLERR) {
+				ERR("%s occurred !!!\n",
+						(poll_events[1].revents & POLLHUP)
+						? "POLLHUP" : "POLLERR");
+				__close_usb_node();
+				pthread_exit(NULL);
 			}
 		}
 		else if (poll_state == 0)

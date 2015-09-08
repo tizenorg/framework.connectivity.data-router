@@ -16,13 +16,13 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs REQUIRED glib-2.0 tapi
+pkg_check_modules(pkgs REQUIRED glib-2.0
 				dbus-glib-1
 				dlog vconf
 				)
 
 FOREACH(flag ${pkgs_CFLAGS})
-	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
+	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag} -fPIC -pie")
 ENDFOREACH(flag)
 #SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} -finstrument-functions")
 
@@ -41,3 +41,4 @@ ADD_EXECUTABLE(${PROJECT_NAME} ${SRCS})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS})
 
 INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${BINDIR})
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/data-router.rule DESTINATION /etc/smack/accesses.d)
