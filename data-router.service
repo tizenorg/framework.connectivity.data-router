@@ -1,0 +1,11 @@
+[Unit]
+Description=Data Router service
+
+[Service]
+User=system
+Group=system
+SmackProcessLabel=data-router
+Type=simple
+ExecStart=/usr/bin/data-router
+KillMode=process
+

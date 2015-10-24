@@ -1,0 +1,18 @@
+<manifest>
+    <define>
+        <domain name="serial-client-test"/>
+	<request>
+		<smack request="system::vconf_system" type="r"/>
+		<smack request="system::vconf_inhouse" type="rw"/>
+		<smack request="system::vconf_network" type="rw"/>
+		<smack request="sys-assert::core" type="rwxat"/>
+		<smack request="dbus" type="rwx"/>
+		<smack request="device::app_logging" type="rwx"/>
+		<smack request="device::sys_logging" type="rwx"/>
+		<smack request="data-router" type="rw"/>
+	</request>
+    </define>
+    <request>
+        <domain name="serial-client-test"/>
+    </request>
+</manifest>

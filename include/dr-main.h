@@ -21,7 +21,6 @@
  */
 
 
-
 #ifndef _DATA_ROUTER_H_
 #define _DATA_ROUTER_H_
 
@@ -33,6 +32,7 @@
 #include <sys/socket.h>
 #include <pthread.h>
 #include <signal.h>
+#include <semaphore.h>
 #include <net/if.h>
 #include <stdarg.h>
 #include <dlfcn.h>
@@ -92,8 +92,6 @@ typedef struct {
 	pthread_t thread_id;				/**< USB thread id */
 	int usb_fd;					/**< USB file descriptor */
 	int usb_ctrl_fd;
-	int data_path;				/**< Data path */
-	char data_buffer[USB_BUFFER_SIZE+1];	/**< Data buffer */
 } dr_usb_info_t;
 
 

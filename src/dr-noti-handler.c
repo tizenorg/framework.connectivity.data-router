@@ -25,11 +25,11 @@
 #include <sys/wait.h>
 
 #include "dr-main.h"
+#include "dr-noti-handler.h"
 #include "dr-usb.h"
 #include "dr-modem.h"
 #include "dr-common.h"
-
-
+#include "dr-parser.h"
 
 #define ACM_WAIT_TIME 300000
 
@@ -53,7 +53,7 @@ static void __usb_status_noti_handler(void *data)
 		return;
 	}
 
-	DBG("USB noti handler, USB state : %d, Mode : %d\n", usb_state, usb_mode);
+	DBG("USB status changed : %d, Mode : %d\n", usb_state, usb_mode);
 	DBG("usb_fd = 0x%x\n", dr_info.usb.usb_fd);
 
 
@@ -74,7 +74,6 @@ static void __usb_status_noti_handler(void *data)
 
 static void __usb_mode_noti_handler(void *data)
 {
-	int usb_state = -1;
 	int usb_mode = -1;
 	int ret;
 
@@ -84,7 +83,7 @@ static void __usb_mode_noti_handler(void *data)
 		return;
 	}
 
-	DBG("USB Mode noti handler, USB  Mode : %d\n", usb_mode);
+	DBG("USB Mode changed : %d\n", usb_mode);
 	DBG("usb_fd = 0x%x\n", dr_info.usb.usb_fd);
 
 	if (usb_mode != SETTING_USB_DEFAULT_MODE) {
@@ -123,9 +122,9 @@ void _unregister_vconf_notification(void)
 	return;
 }
 
-gboolean _register_telephony_event(void)
+void _register_telephony_event(void)
 {
-	return TRUE;
+	return;
 }
 
 void _unregister_telephony_event(void)

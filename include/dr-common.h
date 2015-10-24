@@ -21,7 +21,6 @@
  */
 
 
-
 #ifndef _DR_COMMON_H_
 #define _DR_COMMON_H_
 
@@ -36,9 +35,15 @@
 
 #undef LOG_TAG
 #define LOG_TAG "DATA_ROUTER"
+
 #define DBG(fmt, args...) SLOGD(fmt, ##args)
+#define INFO(fmt, args...) SLOGI(fmt, ##args)
 #define ERR(fmt, args...) SLOGE(fmt, ##args)
 
+#define OK		"\r\nOK\r\n"
+#define ERROR 	"\r\nERROR\r\n"
+
+int _request_reboot(char *parameter);
 
 int _get_usb_state(int *usb_state);
 

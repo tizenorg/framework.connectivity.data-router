@@ -37,17 +37,24 @@ const dr_at_cmd_t dr_at_cmds[] = {
 	{"ATZ", ATZ_TOKEN},
 	{"AT+OSPSERIALOPEN", AT_OSP_TOKEN},
 	{"tizen.request='tizen.initialize'", AT_TIZEN_OSP_TOKEN},
+	{"AT+SERIALTEST", AT_SERIAL_TEST},
 	{"", OTHER_TOKEN},
 };
 
 
-int _get_at_cmd_type(char *buf)
+int _get_at_cmd_type(char *buf, int len)
 {
 	if (buf == NULL) {
 		return TOKEN_ERROR;
 	}
 
 	int idx;
+
+	if (len == 1 && *buf == '\r')
+		return OTHER_TOKEN;
+
+	if (len > 2 && (*buf == '\r' && *(buf+1) == '\n'))
+		buf = buf + 2;
 
 	for (idx = 0; dr_at_cmds[idx].at_cmd[0] != '\0'; idx++) {
 		if (!g_ascii_strncasecmp
@@ -57,6 +64,11 @@ int _get_at_cmd_type(char *buf)
 			buf = buf + strlen(dr_at_cmds[idx].at_cmd);
 			return dr_at_cmds[idx].token_type;
 		}
+	}
+
+	if (g_ascii_strncasecmp((const gchar *)buf, "AT", 2) != 0) {
+		ERR("Invalid AT command");
+		return TOKEN_ERROR;
 	}
 
 	return OTHER_TOKEN;

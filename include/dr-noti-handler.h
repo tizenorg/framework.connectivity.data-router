@@ -21,7 +21,6 @@
  */
 
 
-
 #ifndef _DR_NOTI_HANDLER_H
 #define  _DR_NOTI_HANDLER_H
 
@@ -31,8 +30,7 @@
 gboolean _register_vconf_notification(void);
 void _unregister_vconf_notification(void);
 
-gboolean _register_telephony_event(void);
+void _register_telephony_event(void);
 void _unregister_telephony_event(void);
-
 
 #endif	/* _DR_NOTI_HANDLER_H */

@@ -1,10 +1,11 @@
 root data-router rw---
 _default_ data-router rw---
 data-router sys-assert::core rwxat
-data-router starter::vconf r----
-data-router system::vconf_network rw---
-data-router system::vconf_inhouse rw---
-data-router system::vconf_system r----
 data-router telephony_framework::api_modem r-x--
 data-router telephony_framework::api_sim r----
 data-router telephony_framework::api_manager r----
+data-router serial-client-test rwx--
+data-router tizen::vconf::public::r rwx--
+data-router tizen::vconf::platform::rw rw---
+data-router tizen::vconf::public::r::platform::rw rwx--
+serial-client-test tizen::vconf::public::r rwx--

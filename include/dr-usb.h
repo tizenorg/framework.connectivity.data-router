@@ -21,7 +21,6 @@
  */
 
 
-
 #ifndef _DR_USB_H
 #define  _DR_USB_H
 

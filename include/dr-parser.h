@@ -26,16 +26,17 @@
 #define _DR_PARSER_H_
 
 /* AT tokens */
-enum {
+typedef enum {
 	TOKEN_ERROR,
 	ATZ_TOKEN,
 	AT_OSP_TOKEN,
 	AT_TIZEN_OSP_TOKEN,
+	AT_SERIAL_TEST,
 	OTHER_TOKEN,
-};
+} dr_at_cmd_type_e;
 
 
-int _get_at_cmd_type(char *buf);
+_get_at_cmd_type(char *buf, int len);
 
 
 #endif

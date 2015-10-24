@@ -21,12 +21,12 @@
  */
 
 
-
 #ifndef _DR_UTIL_H_
 #define _DR_UTIL_H_
 
+#include <glib.h>
 
-int _system_cmd(const char *command);
 int _system_cmd_ext(const char *cmd, char *const arg_list[]);
+gboolean _is_run_process(const char *path);
 
 #endif

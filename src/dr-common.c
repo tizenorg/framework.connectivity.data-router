@@ -20,14 +20,58 @@
  *
  */
 
-
 #include <glib.h>
+#include <gio/gio.h>
 #include <vconf.h>
 #include <vconf-keys.h>
 
 #include "dr-main.h"
 #include "dr-common.h"
 #include "dr-util.h"
+
+#define DEVICED_BUS_NAME          "org.tizen.system.deviced"
+#define DEVICED_OBJECT_PATH       "/Org/Tizen/System/DeviceD/Power"
+#define DEVICED_INTERFACE    "org.tizen.system.deviced.power"
+
+extern GDBusConnection *dbus_connection;
+
+static void __request_reboot_cb(GDBusConnection *conn,
+				GAsyncResult *res, gpointer user_data)
+{
+	DBG("reboot");
+}
+
+int _request_reboot(char *parameter)
+{
+	GError *error = NULL;
+
+	DBG("+");
+
+	if (parameter == NULL)
+		return -1;
+
+	if (dbus_connection == NULL)
+		dbus_connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+
+	if (!dbus_connection) {
+		if (error) {
+			ERR("Unable to connect to gdbus: %s", error->message);
+			g_clear_error(&error);
+		}
+		return -1;
+	}
+
+	g_dbus_connection_call(dbus_connection, DEVICED_BUS_NAME,
+			DEVICED_OBJECT_PATH,
+			DEVICED_INTERFACE,
+			"reboot",
+			 g_variant_new("(si)", parameter, 0), NULL,
+			G_DBUS_CALL_FLAGS_NONE, -1, NULL,
+			(GAsyncReadyCallback)__request_reboot_cb, NULL);
+	DBG("-");
+
+	return 0;
+}
 
 int _get_usb_state(int *usb_state)
 {

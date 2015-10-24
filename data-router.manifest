@@ -3,6 +3,12 @@
                 <domain name="data-router"/>
 		<request>
 			<smack request="telephony_framework::properties" type="rw"/>
+			<smack request="dbus" type="rwx"/>
+			<smack request="device::app_logging" type="w"/>
+			<smack request="device::sys_logging" type="w"/>
+			<smack request="tizen::vconf::public::r" type="rl"/>
+			<smack request="tizen::vconf::public::r::platform::rw" type="rl"/>
+			<smack request="tizen::vconf::platform::rw" type="rl"/>
 		</request>
         </define>
         <request>

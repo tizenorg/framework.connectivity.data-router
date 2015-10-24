@@ -35,52 +35,11 @@
 #include "dr-util.h"
 #include "dr-common.h"
 
-
-
-int _system_cmd(const char *command)
-{
-	int pid = 0, status = 0;
-	char *const environ[] = { NULL };
-
-	if (NULL == command) {
-		ERR("Invalid param !!!\n");
-		return -1;
-	}
-
-	pid = fork();
-
-	if (-1 == pid) {
-		ERR("::: fork failed to create a process :::\n");
-		return -1;
-	}
-
-	if (pid == 0) {
-		char *argv[4];
-
-		argv[0] = "sh";
-		argv[1] = "-c";
-		argv[2] = (char *)command;
-		argv[3] = 0;
-
-		execve("/bin/sh", argv, environ);
-		abort();
-	}
-
-	do {
-		if (waitpid(pid, &status, 0) == -1) {
-			if (errno != EINTR)
-				return -1;
-		} else {
-			return status;
-		}
-
-	} while (1);
-}
-
 int _system_cmd_ext(const char *cmd, char *const arg_list[])
 {
 	int pid, pid2;
 	int status = 0;
+	DBG("+\n");
 
 	pid = fork();
 	switch (pid) {
@@ -98,10 +57,12 @@ int _system_cmd_ext(const char *cmd, char *const arg_list[])
 		break;
 
 	default:
+		DBG("parent : forked[%d]\n", pid);
 		waitpid(pid, &status, 0);
+		DBG("child is terminated : %d\n", status);
 		break;
 	}
-
+	DBG("-\n");
 	return 0;
 }
 

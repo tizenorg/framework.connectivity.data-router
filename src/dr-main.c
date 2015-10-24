@@ -20,12 +20,10 @@
  *
  */
 
-
 #include <fcntl.h>
-#include <dbus/dbus-glib.h>
 #include <dirent.h>
 #include <dbus/dbus.h>
-
+#include <glib-object.h>
 
 #include "dr-modem.h"
 #include "dr-main.h"
@@ -35,6 +33,7 @@
 #include "dr-parser.h"
 #include "dr-ipc.h"
 
+#define DATA_ROUTER_BUS		"com.samsung.data.router"
 
 dr_info_t dr_info;
 GMainLoop *mainloop;
@@ -42,17 +41,57 @@ GMainLoop *mainloop;
 
 static void __signal_handler(int signo)
 {
-	DBG("+\n");
-	DBG("SIGNAL Number [%d]  !!! \n", signo);
+	ERR("SIGNAL Number [%d]  !!! ", signo);
 	_send_dtr_ctrl_signal(DTR_OFF);
-	DBG("-\n");
+
 	exit(0);
 }
 
+
+static gboolean __dbus_request_name(void)
+{
+	int ret_code = 0;
+	DBusConnection *conn;
+	DBusError err;
+
+	dbus_error_init(&err);
+
+	conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+
+	if (dbus_error_is_set(&err))
+		goto failed;
+
+	ret_code = dbus_bus_request_name(conn,
+					DATA_ROUTER_BUS,
+					DBUS_NAME_FLAG_DO_NOT_QUEUE,
+					&err);
+	if (dbus_error_is_set(&err))
+		goto failed;
+
+	if(DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER == ret_code) {
+		dbus_connection_unref(conn);
+		return TRUE;
+	}
+
+failed:
+	if (dbus_error_is_set(&err)) {
+		ERR("D-Bus Error: %s\n", err.message);
+		dbus_error_free(&err);
+	}
+
+	if (!conn)
+		dbus_connection_unref(conn);
+
+
+	return FALSE;
+}
+
+
 gboolean _init_dr(void)
 {
-	DBG("+\n");
 	int usb_state = -1;
+
+	INFO("Initialize data-router");
 
 	signal(SIGINT, __signal_handler);
 	signal(SIGQUIT, __signal_handler);
@@ -62,7 +101,6 @@ gboolean _init_dr(void)
 	signal(SIGPIPE, SIG_IGN);
 
 	memset(&dr_info, 0, sizeof(dr_info));
-
 
 	/****************   USB    ******************/
 	if (_get_usb_state(&usb_state) != -1) {
@@ -78,7 +116,7 @@ gboolean _init_dr(void)
 
 gboolean _deinit_dr(void)
 {
-	DBG("+\n");
+	INFO("Deinitialize data-router");
 
 	_unregister_vconf_notification();
 	_unregister_telephony_event();
@@ -93,16 +131,15 @@ gboolean _deinit_dr(void)
 
 int main(int argc, char *argv[])
 {
-	DBG("+\n");
+	INFO("<<<<<  Starting data-router daemon >>>>>");
 
-	g_type_init();
+	if (__dbus_request_name() == FALSE) {
+		ERR("Aleady dbus instance existed\n");
+		exit(0);
+	}
+
+	/* We must guarantee dbus thread safety */
 	_init_dbus_signal();
-
-
-	if (!g_thread_supported())
-		g_thread_init(NULL);
-
-	dbus_g_thread_init();
 
 	_register_vconf_notification();
 	_register_telephony_event();
@@ -112,6 +149,6 @@ int main(int argc, char *argv[])
 	mainloop = g_main_loop_new(NULL, FALSE);
 	g_main_loop_run(mainloop);
 
-	DBG("-\n");
+	INFO("<<<<< Exit data-router >>>>>");
 	return 0;
 }

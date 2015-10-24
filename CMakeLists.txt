@@ -17,8 +17,10 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(pkgs REQUIRED glib-2.0
-				dbus-glib-1
+				gio-2.0
+				dbus-1
 				dlog vconf
+				capi-network-serial
 				)
 
 FOREACH(flag ${pkgs_CFLAGS})
@@ -42,3 +44,5 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS})
 
 INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${BINDIR})
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/data-router.rule DESTINATION /etc/smack/accesses.d)
+
+ADD_SUBDIRECTORY(test)

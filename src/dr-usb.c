@@ -28,6 +28,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <glib.h>
+#include <sys/reboot.h>
 
 #include "dr-main.h"
 #include "dr-modem.h"
@@ -35,6 +36,7 @@
 #include "dr-parser.h"
 #include "dr-common.h"
 #include "dr-ipc.h"
+#include "dr-util.h"
 
 
 #define SOCK_WAIT_TIME 500000
@@ -55,25 +57,29 @@ static int __open_usb_node(void)
 	int usb_fd = 0;
 	int ctl_fd = 0;
 	struct termios tty_termios;
+	char err_buf[ERRMSG_SIZE] = {0, };
+
+	INFO("Open usb device");
 
 	usb_fd = open(USB_TTY_NODE, O_RDWR);
 	if (usb_fd < 0) {
-		ERR("%s open failed()", USB_TTY_NODE);
+		strerror_r(errno, err_buf, ERRMSG_SIZE);
+		ERR("%s open failed. %s (%d)", USB_TTY_NODE, err_buf, errno);
 		goto failed;
 	}
 
 	ctl_fd = open(USB_CTL_NODE, O_RDWR);
 	if (ctl_fd < 0) {
-		ERR("%s open failed()", USB_CTL_NODE);
+		strerror_r(errno, err_buf, ERRMSG_SIZE);
+		ERR("%s open failed. %s (%d)", USB_CTL_NODE, err_buf, errno);
 		goto failed;
 	}
 
 	memset((char *)&tty_termios, 0, sizeof(struct termios));
 
 	if (tcgetattr(usb_fd, &tty_termios) < 0) {
-		char err_buf[ERRMSG_SIZE] = { 0, };
 		strerror_r(errno, err_buf, ERRMSG_SIZE);
-		ERR("tcgetattr error : %s\n", err_buf);
+		ERR("tcgetattr error : %s (%d)\n", err_buf, errno);
 		goto failed;
 	}
 
@@ -87,9 +93,8 @@ static int __open_usb_node(void)
 	tty_termios.c_lflag &= ~ECHO;
 
 	if (tcsetattr(usb_fd, TCSANOW, &tty_termios) < 0) {
-		char err_buf[ERRMSG_SIZE] = { 0, };
 		strerror_r(errno, err_buf, ERRMSG_SIZE);
-		ERR("tcsetattr error : %s\n", err_buf);
+		ERR("tcsetattr error : %s (%d)\n", err_buf, errno);
 		goto failed;
 	}
 
@@ -106,8 +111,8 @@ static int __open_usb_node(void)
 	dr_info.usb.usb_fd = usb_fd;
 	dr_info.usb.usb_ctrl_fd = ctl_fd;
 
-	DBG("usb_fd= 0x%x\n", usb_fd);
-	DBG("usb_ctrl_fd= 0x%x\n", ctl_fd);
+	INFO("usb_fd= 0x%x\n", usb_fd);
+	INFO("usb_ctrl_fd= 0x%x\n", ctl_fd);
 	return 0;
 
 failed:
@@ -122,23 +127,25 @@ failed:
 
 static int __close_usb_node(void)
 {
+	INFO("Close usb device");
+
 	DBG("usb_fd = 0x%x, ctrl_fd = 0x%x\n",
 			dr_info.usb.usb_fd, dr_info.usb.usb_ctrl_fd);
 	if (dr_info.usb.usb_fd > 0) {
 		if (close(dr_info.usb.usb_fd) != 0) {
-			ERR("ttyGS0 Close error\n");
+			ERR("ttyGS0 Close error");
 			return -1;
 		}
-		DBG("ttyGS0 Close success\n");
+		DBG("ttyGS0 Close success");
 		dr_info.usb.usb_fd = 0;
 	}
 
 	if (dr_info.usb.usb_ctrl_fd > 0) {
 		if (close(dr_info.usb.usb_ctrl_fd) != 0) {
-			ERR("ACM Close error\n");
+			ERR("ACM Close error");
 			return -1;
 		}
-		DBG("ACM Close success\n");
+		DBG("ACM Close success");
 		dr_info.usb.usb_ctrl_fd = 0;
 	}
 	return 0;
@@ -148,37 +155,41 @@ static int __close_usb_node(void)
 
 int _init_usb(void)
 {
-	DBG("+\n ");
 	int ret = 0;
+
+	INFO("Initialize usb interface");
+
 	ret = __open_usb_node();
 	if (ret < 0) {
-		ERR("USB node open failed\n");
+		ERR("USB node open failed");
 		return -1;
 	}
 
 	if (0 != pthread_create(&dr_info.usb.thread_id, NULL,
 				__usb_monitor_thread, &dr_info.usb.usb_fd)) {
-		ERR("USB  thread launch failed\n");
+		ERR("USB  thread launch failed");
 		__close_usb_node();
 		return -1;
 	}
 
-	_send_dtr_ctrl_signal(DTR_ON);
+//	_send_dtr_ctrl_signal(DTR_ON);
 
-	DBG("-\n ");
+	DBG("- ");
 	return 0;
 }
 
 
 void _deinit_usb(void)
 {
-	DBG("+\n");
 	int status;
+
+	INFO("Deinitialize usb interface");
+
 	if(dr_info.usb.thread_id <= 0) {
-		ERR("Invalid USB interface  !!! \n");
+		ERR("Invalid USB interface  !!!");
 		return;
 	}
-	DBG("USB disconnected!!!!!!!!!!\n");
+	INFO("USB disconnected!!!!!!!!!!");
 
 	_send_dtr_ctrl_signal(DTR_OFF);
 
@@ -205,7 +216,9 @@ int _write_to_usb(char *buf, int buf_len)
 		len = write(dr_info.usb.usb_fd, buf + write_len,
 				buf_len - write_len);
 		if (len == -1) {
-			ERR("USB write failed\n");
+			char err_buf[ERRMSG_SIZE] = {0, };
+			strerror_r(errno, err_buf, ERRMSG_SIZE);
+			ERR("USB write failed : %s [%d]", err_buf, errno);
 			break;
 		}
 		write_len += len;
@@ -219,12 +232,14 @@ int _send_usb_line_state(int ctrl)
 {
 	int ret;
 
+	INFO("Set ioctl [%x]", ctrl);
+
 	ret = ioctl(dr_info.usb.usb_ctrl_fd, GS_CDC_NOTIFY_SERIAL_STATE, ctrl);
 	if (ret < 0) {
 		int err = errno;
 		char err_buf[ERRMSG_SIZE] = { 0, };
 		strerror_r(err, err_buf, ERRMSG_SIZE);
-		ERR("ioctl error : %s (%d)\n", err_buf, err);
+		ERR("ioctl error : %s (%d)", err_buf, err);
 		return -EIO;
 	}
 	return 0;
@@ -238,6 +253,8 @@ static void __process_at_cmd(char *buffer, int nread)
 	int type;
 	int check_cnt = 0;
 	char *info = NULL;
+	static char *tmp = NULL;
+	static gboolean wait_cr = FALSE;
 
 	DBG("Received: %s [%d byte]\n",buffer, nread);
 	if(TRUE == _is_exist_serial_session()) {
@@ -245,32 +262,72 @@ static void __process_at_cmd(char *buffer, int nread)
 		return;
 	}
 
-	type = _get_at_cmd_type(buffer);
-	if (type == ATZ_TOKEN) {
-		info = "\r\nOK\r\n";
+	/* Handling at cmd comes from hyperterminal
+		 Default format is "AT<command...><CR>"
+		 But several application use different format */
+	if (buffer[nread -1] != '\r' && buffer[nread -1] != '\n' && buffer[nread -1] != '\0') {
+		if (tmp == NULL)
+			tmp = g_malloc0(USB_BUFFER_SIZE);
+
+		g_strlcat(tmp, buffer, USB_BUFFER_SIZE);
+		wait_cr = TRUE;
+		DBG("Waiting <CR>");
+		return;
+	} else if (wait_cr && buffer[nread -1] == '\r') {
+		DBG("Founded <CR>");
+		if (tmp != NULL) {
+			g_strlcat(tmp, buffer, USB_BUFFER_SIZE);
+			g_strlcpy(buffer, tmp, USB_BUFFER_SIZE);
+			nread = strlen(buffer);
+			g_free(tmp);
+			tmp = NULL;
+		}
+		wait_cr = FALSE;
+	}
+
+	type = _get_at_cmd_type(buffer, nread);
+	switch (type) {
+	case ATZ_TOKEN:
+		info = OK;
 		_write_to_usb(info, strlen(info));
 		return;
-	} else if (type == AT_OSP_TOKEN || type == AT_TIZEN_OSP_TOKEN) {
+	case AT_OSP_TOKEN:
+	case AT_TIZEN_OSP_TOKEN:
 		_init_serial_server();
 
-		if (vconf_set_int("memory/data_router/osp_serial_open", 1) != 0) {
+		if (vconf_set_int(VCONFKEY_DR_OSP_SERIAL_OPEN_INT,
+				VCONFKEY_DR_OSP_SERIAL_OPEN) != 0) {
 			ERR("vconf set failed\n");
+
+			if (type == AT_OSP_TOKEN)
+				info = ERROR;
+			else
+				info = "\r\ntizen.response='tizen.failure'\r\n";
+
+			_write_to_usb(info, strlen(info));
 			return;
 		}
 
 		if (_wait_serial_session()) {
 			if (type == AT_OSP_TOKEN)
-				info = "\r\nOK\r\n";
+				info = OK;
 			else
 				info = "\r\ntizen.response='tizen.success'\r\n";
 		} else {
 			if (type == AT_OSP_TOKEN)
-				info = "\r\nERROR\r\n";
+				info = ERROR;
 			else
 				info = "\r\ntizen.response='tizen.failure'\r\n";
 		}
+
 		_write_to_usb(info, strlen(info));
 		return;
+	case AT_SERIAL_TEST:
+		_init_serial_server();
+		_system_cmd_ext("/usr/bin/serial-client-test", NULL);
+		return;
+	default:
+		break;
 	}
 
 	while (dsr_status == FALSE) {
@@ -287,41 +344,51 @@ static void __process_at_cmd(char *buffer, int nread)
 	return;
 }
 
-
 static void *__usb_monitor_thread(void *arg)
 {
 	int ret = 0;
 	int nread = 0;
 	int usb_fd = 0;
 	int poll_state = 0;
+	char *buffer;
 
 	usb_fd = *((int *)arg);
-	DBG("USB monitor thread launched, usb_fd= 0x%x\n", usb_fd);
+	DBG("USB monitor thread launched, usb_fd= 0x%x", usb_fd);
 	while (usb_fd) {
 		poll_state = poll((struct pollfd *)&poll_events, 2, -1);
 		if (poll_state > 0) {
 			if (poll_events[0].revents & POLLIN) {
-				memset(dr_info.usb.data_buffer, '\0',
-						sizeof(dr_info.usb.data_buffer));
-				nread = read(usb_fd, &dr_info.usb.data_buffer,
-						sizeof(dr_info.usb.data_buffer)-1);
-				if (nread < 0) {
-					ERR("read length is less then zero\n");
-					if (errno == EINTR) {
-						continue;
-					}
-					perror("Read USB failed");
+				buffer = g_malloc0(USB_BUFFER_SIZE + 1);
+				if (buffer == NULL) {
+					ERR("Fail to allocate memory");
 					__close_usb_node();
 					pthread_exit(NULL);
 				}
-				__process_at_cmd(dr_info.usb.data_buffer, nread);
+				nread = read(usb_fd, buffer, USB_BUFFER_SIZE);
+				if (nread < 0) {
+					g_free(buffer);
+					if (errno == EINTR) {
+						DBG("EINTR...");
+						continue;
+					}
+					char err_buf[ERRMSG_SIZE] = {0, };
+					strerror_r(errno, err_buf, ERRMSG_SIZE);
+					ERR("Read %s failed : %s [%d]", USB_TTY_NODE, err_buf, errno);
+					__close_usb_node();
+					pthread_exit(NULL);
+				}
+
+				*(buffer + nread) = 0;
+				__process_at_cmd(buffer, nread);
+				g_free(buffer);
 			}
 
 			if (poll_events[0].revents & POLLHUP ||
-					poll_events[0].revents & POLLERR) {
-				ERR("%s occurred !!!\n",
+				poll_events[0].revents & POLLERR) {
+				ERR("%s occurred !!! [%s]",
 						(poll_events[0].revents & POLLHUP)
-						? "POLLHUP" : "POLLERR");
+						? "POLLHUP" : "POLLERR",
+						USB_TTY_NODE);
 				__close_usb_node();
 				pthread_exit(NULL);
 			}
@@ -332,7 +399,7 @@ static void *__usb_monitor_thread(void *arg)
 				ret = read(dr_info.usb.usb_ctrl_fd,
 						&line_state, sizeof(unsigned int));
 				if (ret < 0) {
-					ERR("read length is less then zero\n");
+					ERR("read length is less then zero");
 					if (errno == EINTR) {
 						continue;
 					}
@@ -340,9 +407,17 @@ static void *__usb_monitor_thread(void *arg)
 					pthread_exit(NULL);
 				}
 
+				INFO("line state %x", line_state);
+
+				DBG("line state: rts%c, dtr%c",
+					     line_state & ACM_CTRL_RTS ? '+' : '-',
+					     line_state & ACM_CTRL_DTR ? '+' : '-');
+				DBG("(!(line_state & ACM_CTRL_DTR)): %d",
+						(!(line_state & ACM_CTRL_DTR)));
+
 				if ((line_state & ACM_CTRL_DTR) &&
 						(dr_info.line.input_line_state.bits.dtr == FALSE)) {
-					DBG("ACM_CTRL_DTR+ received\n");
+					INFO("ACM_CTRL_DTR+ received");
 					if(dr_info.line.output_line_state.bits.dsr == FALSE) {
 					/*
 					* When USB initialized, DTR On is set to CP.
@@ -353,27 +428,36 @@ static void *__usb_monitor_thread(void *arg)
 					dr_info.line.input_line_state.bits.dtr = TRUE;
 				} else if ((!(line_state & ACM_CTRL_DTR)) &&
 						(dr_info.line.input_line_state.bits.dtr == TRUE)) {
-					DBG("ACM_CTRL_DTR- received\n");
+					INFO("ACM_CTRL_DTR- received");
 					if (_deinit_serial_server() == TRUE) {
-						_send_serial_status_signal(SERIAL_CLOSED);
+						if(TRUE == _is_exist_serial_session())
+							_send_serial_status_signal(SERIAL_CLOSED);
+					}
+
+					if (dsr_status == TRUE) {
+						_send_dtr_ctrl_signal(DTR_OFF);
 						dr_info.line.input_line_state.bits.dtr = FALSE;
+					} else {
+						INFO("DSR status is OFF, Skip the DTR-");
 					}
 				}
 			}
 
 			if (poll_events[1].revents & POLLHUP ||
-					poll_events[1].revents & POLLERR) {
-				ERR("%s occurred !!!\n",
+				poll_events[1].revents & POLLERR) {
+				ERR("%s occurred !!! [%s]",
 						(poll_events[1].revents & POLLHUP)
-						? "POLLHUP" : "POLLERR");
+						? "POLLHUP" : "POLLERR",
+						USB_CTL_NODE);
 				__close_usb_node();
 				pthread_exit(NULL);
 			}
+
 		}
 		else if (poll_state == 0)
-			ERR("poll timeout\n");
+			ERR("poll timeout");
 		else if (poll_state < 0)
-			ERR("poll error\n");
+			ERR("poll error");
 	}
 	return NULL;
 }
